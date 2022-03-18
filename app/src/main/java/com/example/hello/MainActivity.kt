@@ -15,6 +15,8 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import com.example.hello.ui.theme.HelloTheme
 
 class MainActivity : ComponentActivity() {
@@ -22,20 +24,19 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             HelloTheme {
-                Hello()
+                val navController = rememberNavController()
+                SetupNavGraph(navController = navController)
             }
         }
     }
 }
 
 @Composable
-fun TextAndButton(name: MutableState<String>, nameEntered: MutableState<Boolean>) {
+fun TextAndButton(name: String, onUpdate: (String) -> Unit, onClick: () -> Unit) {
     Row(modifier = Modifier.padding(top = 8.dp)) {
         TextField(
-            value = name.value,
-            onValueChange = {
-                name.value = it
-            },
+            value = name,
+            onValueChange = onUpdate,
             placeholder = {
                 Text(text = stringResource(id = R.string.hint))
             },
@@ -44,18 +45,13 @@ fun TextAndButton(name: MutableState<String>, nameEntered: MutableState<Boolean>
             keyboardOptions = KeyboardOptions(
                 autoCorrect = false,
                 capitalization = KeyboardCapitalization.Words
-            ),
-            keyboardActions = KeyboardActions(onAny = {
-                nameEntered.value = true
-            })
+            )
         )
         Button(
             modifier = Modifier
                 .alignByBaseline()
                 .padding(8.dp),
-            onClick = {
-                nameEntered.value = true
-            }
+            onClick = onClick
         ) {
             Text(text = stringResource(id = R.string.done))
         }
@@ -63,12 +59,31 @@ fun TextAndButton(name: MutableState<String>, nameEntered: MutableState<Boolean>
 }
 
 @Composable
-fun Greeting(name: String) {
-    Text(
-        text = stringResource(id = R.string.hello, name),
-        textAlign = TextAlign.Center,
-        style = MaterialTheme.typography.subtitle1
-    )
+fun Greeting(navController: NavHostController, name: String?) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+        Text(
+            text = stringResource(id = R.string.hello, name!!),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.subtitle1
+        )
+
+        Button(
+            onClick = {
+                navController.navigate(route = "home_screen") {
+                    popUpTo("home_screen") {
+                        inclusive = true
+                    }
+                }
+            }
+        ) {
+            Text(text = "Back")
+        }
+    }
 }
 
 @Composable
@@ -80,20 +95,19 @@ fun Welcome() {
 }
 
 @Composable
-fun Hello() {
-    val name = remember { mutableStateOf("") }
-    val nameEntered = remember { mutableStateOf(false) }
-    Box(
+fun Hello(navController: NavHostController) {
+    var name by remember { mutableStateOf("") }
+    Column(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (nameEntered.value) {
-            Greeting(name.value)
-        } else {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Welcome()
-                TextAndButton(name, nameEntered)
-            }
+        Welcome()
+        TextAndButton(name, { value: String ->
+            name = value
+        }, {
+            navController.navigate(if (name.isEmpty()) "second_screen" else "second_screen?name=$name")
         }
+        )
     }
 }
